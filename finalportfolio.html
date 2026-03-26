@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jayesh More | Data Analyst & Engineer</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Manrope', 'sans-serif'] },
+                    colors: { deep: '#010309', surface: '#0B1221', accent: '#38bdf8', accent2: '#818cf8', },
+                    animation: { 'float': 'float 6s ease-in-out infinite', 'float-delayed': 'float 6s ease-in-out infinite 3s', 'spin-slow': 'spin 8s linear infinite', },
+                    keyframes: { float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-12px)' }, } }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+    <script src="https://unpkg.com/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+
+    <style>
+        body {
+            background-color: #010309;
+            color: #f8fafc;
+            overflow-x: hidden;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            cursor: none;
+        }
+
+        .ambient-glow {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.05) 0%, transparent 60%), radial-gradient(circle at 10% 80%, rgba(129, 140, 248, 0.04) 0%, transparent 50%), radial-gradient(circle at 90% 90%, rgba(192, 132, 252, 0.04) 0%, transparent 50%);
+        }
+
+        #interactive-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -2;
+            pointer-events: auto;
+            opacity: 1;
+        }
+
+        #cursor,
+        #cursor-follower {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 9999;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, background-color 0.3s, border-color 0.3s;
+            will-change: transform, width, height;
+        }
+
+        #cursor {
+            width: 8px;
+            height: 8px;
+            background-color: #38bdf8;
+        }
+
+        #cursor-follower {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            transition: transform 0.1s ease-out, opacity 0.3s;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+
+        body.hovering #cursor {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.8);
+            mix-blend-mode: exclusion;
+        }
+
+        body.hovering #cursor-follower {
+            opacity: 0;
+            transform: scale(1.5);
+        }
+
+        @media (max-width: 768px) {
+
+            body,
+            a,
+            button,
+            .cursor-hover {
+                cursor: auto;
+            }
+
+            #cursor,
+            #cursor-follower {
+                display: none !important;
+            }
+
+            .animate-float,
+            .animate-float-delayed {
+                animation: none !important;
+            }
+        }
+
+        .glass-panel {
+            background: rgba(11, 18, 33, 0.5);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.4s ease;
+        }
+
+        .glass-panel-heavy {
+            background: rgba(11, 18, 33, 0.7);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #e0f2fe 0%, #38bdf8 50%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .timeline-line {
+            width: 2px;
+            background: linear-gradient(to bottom, transparent, rgba(56, 189, 248, 0.4), transparent);
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+
+        .timeline-dot {
+            width: 16px;
+            height: 16px;
+            background: #010309;
+            border: 4px solid #38bdf8;
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 32px;
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 1);
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(56, 189, 248, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+            }
+        }
+
+        .animate-pulse-glow {
+            animation: pulse-glow 2.5s infinite;
+        }
+
+        .img-wrapper {
+            overflow: hidden;
+            border-radius: 1rem;
+            position: relative;
+        }
+
+        .img-wrapper img {
+            transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-panel:hover .img-wrapper img {
+            transform: scale(1.08);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #010309;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+
+        html.lenis,
+        html.lenis body {
+            height: auto;
+            width: 100vw;
+        }
+
+        .lenis.lenis-smooth {
+            scroll-behavior: auto !important;
+        }
+
+        .text-glow {
+            text-shadow: 0 0 40px rgba(56, 189, 248, 0.6);
+        }
+
+        a,
+        button,
+        .cursor-hover {
+            cursor: none;
+        }
+    </style>
+</head>
+
+<body class="selection:bg-accent/30 selection:text-sky-200">
+
+    <div id="cursor" class="hidden md:block"></div>
+    <div id="cursor-follower" class="hidden md:block"></div>
+
+    <canvas id="interactive-canvas"></canvas>
+    <div class="ambient-glow"></div>
+
+    <nav class="fixed w-full z-50 top-0 transition-transform duration-500 cursor-hover" id="navbar">
+        <div class="absolute inset-0 glass-panel border-b-0 border-white/5 opacity-80 pointer-events-none"></div>
+        <div class="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center relative z-10">
+            <div class="text-xl font-black tracking-tighter text-white hover:text-accent transition-colors cursor-hover"
+                onclick="window.scrollTo(0,0)">
+                JAYESH <span class="text-accent">MORE</span>
+            </div>
+            <div class="hidden lg:flex space-x-6 text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
+                <a href="#about" class="cursor-hover hover:text-accent transition-colors">About</a>
+                <a href="#skills" class="cursor-hover hover:text-accent transition-colors">Skills</a>
+                <a href="#projects" class="cursor-hover hover:text-accent transition-colors">Projects</a>
+                <a href="#training" class="cursor-hover hover:text-accent transition-colors">Training</a>
+                <a href="#credentials" class="cursor-hover hover:text-accent transition-colors">Certificate</a>
+                <a href="#achieve" class="cursor-hover hover:text-accent transition-colors">Achievements</a>
+                <a href="#contact" class="cursor-hover hover:text-accent transition-colors">Contact</a>
+
+
+            </div>
+            <a href="https://drive.google.com/file/d/1SzSitkSjdQgkoG5LOQT9CmkomoH5VLCW/view?usp=sharing" target="_blank"
+                class="cursor-hover relative group px-6 py-2.5 rounded-full overflow-hidden flex items-center gap-2">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-accent to-accent2 opacity-80 transition-transform duration-500 group-hover:scale-105">
+                </div>
+                <span
+                    class="relative z-10 text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+                    Resume <i class="fa-solid fa-download w-3.5 h-3.5 mt-[1px]"></i>
+                </span>
+            </a>
+        </div>
+    </nav>
+
+    <main class="relative z-10">
+        <section class="min-h-[100svh] flex flex-col justify-center px-6 relative pt-20 overflow-hidden">
+            <div class="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-16 items-center z-10">
+                <div data-aos="fade-right" data-aos-duration="1500" class="animate-float">
+                    <div
+                        class="inline-block px-4 py-2 border border-accent/40 rounded-full bg-accent/10 text-accent text-xs font-bold uppercase tracking-widest mb-8 text-glow cursor-hover backdrop-blur-md">
+                        <span class="inline-block w-2 h-2 rounded-full bg-accent mr-2 animate-pulse-glow"></span> Data
+                        Analyst / ML Enthusiast
+                    </div>
+                    <h1
+                        class="text-6xl sm:text-8xl lg:text-[7rem] font-black leading-[0.9] tracking-tighter mb-6 text-white cursor-hover drop-shadow-2xl uppercase">
+                        Jayesh <br /> <span class="gradient-text text-glow">More.</span> </h1>
+                    <p class="text-slate-300 text-xl max-w-xl mb-10 leading-relaxed font-light cursor-hover"> Passionate
+                        about translating raw data into <strong class="text-white font-medium">meaningful
+                            intelligence</strong> and engineering impactful, data-driven solutions for complex
+                        challenges. </p>
+                    <div class="flex flex-wrap items-center gap-6">
+                        <a href="#about"
+                            class="cursor-hover px-8 py-4 bg-white text-deep font-black uppercase text-sm tracking-widest rounded-full hover:bg-slate-200 transition-colors flex items-center gap-2 shadow-[0_0_40px_rgba(255,255,255,0.2)]">
+                            Enter Port <i class="fa-solid fa-arrow-right ml-1 -rotate-45"></i> </a>
+                        <div class="flex items-center gap-4">
+                            <a href="https://www.linkedin.com/in/jayeshm0re/" target="_blank"
+                                class="cursor-hover p-4 rounded-full glass-panel border-white/20 hover:border-accent hover:text-accent hover:bg-accent/20 transition-all flex justify-center items-center w-14 h-14">
+                                <i class="fa-brands fa-linkedin-in text-xl"></i> </a>
+                            <a href="https://github.com/Jayesh-bot" target="_blank"
+                                class="cursor-hover p-4 rounded-full glass-panel border-white/20 hover:border-accent hover:text-accent hover:bg-accent/20 transition-all flex justify-center items-center w-14 h-14">
+                                <i class="fa-brands fa-github text-xl"></i> </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden lg:flex justify-end relative animate-float-delayed" data-aos="fade-left"
+                    data-aos-duration="1500" data-aos-delay="300">
+                    <div class="relative group">
+                        <div
+                            class="absolute -inset-1 bg-gradient-to-r from-accent via-accent2 to-purple-500 rounded-[3rem] blur opacity-75 group-hover:opacity-100 animate-spin-slow transition duration-1000">
+                        </div>
+                        <div data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-glare
+                            data-tilt-max-glare="0.4"
+                            class="cursor-hover relative w-[460px] h-[580px] rounded-[3rem] overflow-hidden glass-panel-heavy p-2 shadow-[0_0_80px_rgba(56,189,248,0.2)] z-10 border border-white/10 bg-[#010309]">
+                            <img src="https://lh3.googleusercontent.com/d/1KR3SDHcNFFO-sPaj7eG1ztdkOZkZISdW"
+                                alt="Jayesh More Portrait"
+                                class="w-full h-full object-cover rounded-[2.5rem] filter contrast-125 saturate-110 grayscale-[10%]">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-t from-[#010309] via-transparent to-transparent opacity-90 rounded-[2.5rem]">
+                            </div>
+                            <div
+                                class="absolute bottom-8 left-8 right-8 glass-panel heavy rounded-3xl p-6 flex flex-col border border-white/20 backdrop-blur-3xl transform translate-z-40">
+                                <div class="flex justify-between items-center mb-3">
+                                    <div>
+                                        <p class="text-[10px] text-accent font-black uppercase tracking-[0.2em] mb-1">
+                                            Status</p>
+                                        <p class="text-md font-bold text-white">Open to Work</p>
+                                    </div>
+                                    <span
+                                        class="w-4 h-4 rounded-full bg-green-500 inline-block animate-pulse-glow shadow-[0_0_20px_rgba(34,197,94,0.6)]"></span>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <span
+                                        class="bg-white/10 text-white text-[9px] uppercase font-bold tracking-widest px-3 py-1.5 rounded-full border border-white/10">Python
+                                        / ML</span>
+                                    <span
+                                        class="bg-white/10 text-white text-[9px] uppercase font-bold tracking-widest px-3 py-1.5 rounded-full border border-white/10">Power
+                                        BI</span>
+                                    <span
+                                        class="bg-accent/20 text-accent text-[9px] uppercase font-bold tracking-widest px-3 py-1.5 rounded-full border border-accent/20">SQL</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+        <!--<section id="about" class="py-40 px-6 relative z-10">
+            <div class="max-w-4xl mx-auto text-center cursor-hover animate-float" data-aos="zoom-in" data-aos-duration="1200">
+                <i class="fa-solid fa-quote-left text-4xl text-accent/20 mb-8 inline-block"></i>
+                <h3 class="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight mb-10 text-white">
+                    I am a results-driven <span class="gradient-text italic font-black">Data Analyst and Machine Learning enthusiast</span>, obsessed with translating complex datasets into elegant, actionable intelligence.
+                </h3>
+                <div class="text-slate-400 text-lg md:text-xl leading-relaxed font-light mx-auto space-y-6 text-left md:text-center">
+                    <p> Specializing in <strong class="text-white font-medium border-b border-accent pb-0.5">Python, Power BI, and robust statistical evaluation</strong>, I build deep data pipelines that visualize hidden trends and directly drive strategic decision-making. My hands-on experience spans rigorous exploratory data analysis, predictive modeling, and extensive visualization architecture. </p>
+                    <p> By combining a core foundation in <strong class="text-white font-medium">Data Science & ML</strong> with an innate engineering proficiency across C++, Java, Kotlin, and C, I don’t just analyze the numbers—I actively architect end-to-end, data-powered solutions built for infinite scale and continuous adaptation. </p>
+                </div>
+            </div>
+        </section>-->
+        <section id="about" class="py-40 px-6 relative z-10">
+            <div class="max-w-4xl mx-auto text-center cursor-hover animate-float" data-aos="zoom-in"
+                data-aos-duration="1200">
+                <i class="fa-solid fa-quote-left text-4xl text-accent/20 mb-8 inline-block"></i>
+
+                <h3 class="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight mb-10 text-white">
+                    Turning data into <span class="gradient-text italic font-black">insightful, actionable
+                        solutions</span>
+                </h3>
+
+                <div
+                    class="text-slate-400 text-lg md:text-xl leading-relaxed font-light mx-auto space-y-6 text-left md:text-center">
+
+                    <p>
+                        I am a <strong class="text-white font-medium">Data Analyst and Machine Learning
+                            enthusiast</strong> with a strong focus on extracting meaningful insights from complex
+                        datasets. I specialize in
+                        <strong class="text-white font-medium border-b border-accent pb-0.5">
+                            Python, Power BI, and statistical analysis
+                        </strong>,
+                        applying data cleaning, exploratory analysis, and predictive modeling to support informed
+                        decision-making.
+                    </p>
+
+                    <p>
+                        With a solid foundation in
+                        <strong class="text-white font-medium">Data Science and Machine Learning</strong>
+                        and programming expertise in C++, Java, Kotlin, and C, I develop efficient, scalable, and
+                        data-driven solutions. I am continuously learning and refining my skills to solve real-world
+                        problems through data.
+                    </p>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Advanced Data Analyst Skills Grid -->
+        <section id="skills"
+            class="py-32 px-6 relative z-10 border-t border-white/5 bg-gradient-to-b from-transparent via-[#0B1221]/40 to-transparent w-full">
+            <div class="max-w-7xl mx-auto cursor-hover">
+                <div class="text-center mb-16" data-aos="fade-up" data-aos-duration="1000">
+                    <h2 class="text-xs font-black text-accent uppercase tracking-[0.4em] mb-4">Expertise</h2>
+                    <h3 class="text-5xl md:text-6xl font-black text-white">Core Competencies</h3>
+                </div>
+
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Python & Machine Learning -->
+                    <div data-aos="zoom-in-up" data-aos-duration="1000" data-tilt data-tilt-max="5"
+                        class="glass-panel p-8 rounded-[2rem] border-t-4 border-sky-400 text-center hover:bg-sky-400/5 hover:border-sky-400 flex flex-col items-center animate-float group">
+                        <i
+                            class="fa-solid fa-brain text-4xl text-sky-400 mb-4 group-hover:scale-110 transition-transform"></i>
+                        <h4 class="text-md font-black mb-3 text-white tracking-widest uppercase">Machine Learning</h4>
+                        <p class="text-slate-400 text-xs font-light mb-5 leading-relaxed flex-grow">
+                            Proficient in Python for creating predictive machine learning models, scaling data
+                            preprocessing, and delivering predictive analytics.
+                        </p>
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-sky-400/30 rounded text-[10px] font-bold text-sky-300">Python
+                                [libraries]</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-sky-400/30 rounded text-[10px] font-bold text-sky-300">SciKit-Learn</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-sky-400/30 rounded text-[10px] font-bold text-sky-300">Data
+                                Analytics</span>
+                        </div>
+                    </div>
+
+                    <!-- Data Visualization -->
+                    <div data-aos="zoom-in-up" data-aos-duration="1000" data-aos-delay="100" data-tilt data-tilt-max="5"
+                        class="glass-panel p-8 rounded-[2rem] border-t-4 border-purple-400 text-center hover:bg-purple-400/5 hover:border-purple-400 flex flex-col items-center animate-float-delayed group">
+                        <i
+                            class="fa-solid fa-chart-pie text-4xl text-purple-400 mb-4 group-hover:scale-110 transition-transform"></i>
+                        <h4 class="text-md font-black mb-3 text-white tracking-widest uppercase">Data & DB</h4>
+                        <p class="text-slate-400 text-xs font-light mb-5 leading-relaxed flex-grow">
+                            Leveraging Power BI and MySQL to construct deeply interactive dashboards and generate exact
+                            business intelligence.
+                        </p>
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-purple-400/30 rounded text-[10px] font-bold text-purple-300">Power
+                                BI</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-purple-400/30 rounded text-[10px] font-bold text-purple-300">DAX</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-purple-400/30 rounded text-[10px] font-bold text-purple-300">Excel</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-purple-400/30 rounded text-[10px] font-bold text-purple-300">MySQL</span>
+                        </div>
+                    </div>
+
+                    <!-- Software Dev -->
+                    <div data-aos="zoom-in-up" data-aos-duration="1000" data-aos-delay="200" data-tilt data-tilt-max="5"
+                        class="glass-panel p-8 rounded-[2rem] border-t-4 border-emerald-400 text-center hover:bg-emerald-400/5 hover:border-emerald-400 flex flex-col items-center animate-float group">
+                        <i
+                            class="fa-solid fa-layer-group text-4xl text-emerald-400 mb-4 group-hover:scale-110 transition-transform"></i>
+                        <h4 class="text-md font-black mb-3 text-white tracking-widest uppercase">Programming, Tools &
+                            Dev. </h4>
+                        <p class="text-slate-400 text-xs font-light mb-5 leading-relaxed flex-grow">
+                            Comprehensive understanding of OOP, utilizing Android Studio, and deploying frontend
+                            pipelines.
+                        </p>
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-emerald-400/30 rounded text-[10px] font-bold text-emerald-300">C++
+                                / C</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-emerald-400/30 rounded text-[10px] font-bold text-emerald-300">Java</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-emerald-400/30 rounded text-[10px] font-bold text-emerald-300">Python</span>
+
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-emerald-400/30 rounded text-[10px] font-bold text-emerald-300">Kotlin
+                                / XML</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-emerald-400/30 rounded text-[10px] font-bold text-emerald-300">HTML/CSS</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-emerald-400/30 rounded text-[10px] font-bold text-emerald-300">Android
+                                Studio</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-emerald-400/30 rounded text-[10px] font-bold text-emerald-300">Github</span>
+
+                        </div>
+                    </div>
+
+                    <!-- Soft Skills -->
+                    <div data-aos="zoom-in-up" data-aos-duration="1000" data-aos-delay="300" data-tilt data-tilt-max="5"
+                        class="glass-panel p-8 rounded-[2rem] border-t-4 border-pink-400 text-center hover:bg-pink-400/5 hover:border-pink-400 flex flex-col items-center animate-float-delayed group">
+                        <i
+                            class="fa-solid fa-users text-4xl text-pink-400 mb-4 group-hover:scale-110 transition-transform"></i>
+                        <h4 class="text-md font-black mb-3 text-white tracking-widest uppercase">Soft Skills</h4>
+                        <p class="text-slate-400 text-xs font-light mb-5 leading-relaxed flex-grow">
+                            Cultivating unyielding teamwork through rigorous logic execution, communicative Project
+                            Management, and complete adaptability.
+                        </p>
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-pink-400/30 rounded text-[10px] font-bold text-pink-300">Problem
+                                Solving</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-pink-400/30 rounded text-[10px] font-bold text-pink-300">Adaptability</span>
+                            <span
+                                class="px-3 py-1 bg-[#010309]/50 border border-pink-400/30 rounded text-[10px] font-bold text-pink-300">Project
+                                Mgmt</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="projects" class="py-32 px-6">
+            <div class="max-w-7xl mx-auto cursor-hover">
+                <div class="mb-20 text-center md:text-left" data-aos="fade-right" data-aos-duration="1000">
+                    <h2 class="text-xs font-black text-accent uppercase tracking-[0.4em] mb-4">Showcase</h2>
+                    <h3 class="text-5xl md:text-6xl font-black text-white">Featured Projects</h3>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div data-aos="fade-up" data-aos-duration="1000" data-tilt data-tilt-max="8"
+                        class="cursor-hover glass-panel rounded-[2rem] p-6 flex flex-col h-full group border border-white/10 hover:border-sky-400/50 hover:bg-sky-400/5 animate-float">
+                        <div
+                            class="img-wrapper mb-8 h-48 rounded-2xl bg-[#010309] border border-white/5 overflow-hidden">
+                            <img src="https://lh3.googleusercontent.com/d/16eoXx5fbJHGWRzP2V71ORD3AHZ_xFqmD"
+                                alt="Weather Pattern Analysis"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-all duration-700">
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span
+                                    class="text-[9px] uppercase font-bold tracking-widest text-sky-400 bg-sky-400/10 px-2 py-1 rounded border border-sky-400/20">Python
+                                    | ML</span>
+                            </div>
+                            <h4 class="text-2xl font-bold mb-4 text-white group-hover:text-sky-400 transition-colors">
+                                Weather Pattern Analysis</h4>
+                            <p class="text-slate-400 text-sm mb-6 leading-relaxed font-light"> Developed a multi-class
+                                temperature classification model leveraging advanced Machine Learning algorithms.
+                                Implemented data preprocessing, feature engineering, and high-fidelity visualizations
+                                utilizing Logistic Regression. </p>
+                        </div>
+                        <div class="mt-6 pt-6 border-t border-white/10"> <a
+                                href="https://github.com/Jayesh-bot/Weather-Pattern-Analysis-and-Prediction-Using-Machine-Learning-"
+                                target="_blank"
+                                class="flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-sky-400 hover:text-white transition-colors">
+                                View Repository <i
+                                    class="fa-solid fa-arrow-up-right-from-square ml-1 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform"></i>
+                            </a> </div>
+                    </div>
+                    <!-- Car Sales -->
+                    <div data-aos="fade-up" data-aos-duration="1000" data-aos-delay="150" data-tilt data-tilt-max="8"
+                        class="cursor-hover glass-panel rounded-[2rem] p-6 flex flex-col h-full group border border-white/10 hover:border-purple-400/50 hover:bg-purple-400/5 animate-float-delayed">
+                        <div
+                            class="img-wrapper mb-8 h-48 rounded-2xl bg-[#010309] border border-white/5 overflow-hidden">
+                            <img src="https://lh3.googleusercontent.com/d/14JJLH4FcoSweXPldGJQLnTNXD2DZaNf_"
+                                alt="Car Sales Analysis"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-all duration-700">
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex items-center gap-2 mb-4"> <span
+                                    class="text-[9px] uppercase font-bold tracking-widest text-purple-400 bg-purple-400/10 px-2 py-1 rounded border border-purple-400/20">Power
+                                    BI | Excel</span> </div>
+                            <h4
+                                class="text-2xl font-bold mb-4 text-white group-hover:text-purple-400 transition-colors">
+                                Car Sales Analysis</h4>
+                            <p class="text-slate-400 text-sm mb-6 leading-relaxed font-light"> Engineered a fully
+                                interactive dashboard designed to dissect automotive sales performance. Employed
+                                advanced DAX measures for trend tracking and Power Query for flawless data
+                                transformation standardizing multi-regional models. </p>
+                        </div>
+                        <div class="mt-6 pt-6 border-t border-white/10"> <a
+                                href="https://github.com/Jayesh-bot/Car-Sales-Analysis-Power-BI" target="_blank"
+                                class="flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-purple-400 hover:text-white transition-colors">
+                                View Repository <i
+                                    class="fa-solid fa-arrow-up-right-from-square ml-1 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform"></i>
+                            </a> </div>
+                    </div>
+                    <!-- Air Quality -->
+                    <div data-aos="fade-up" data-aos-duration="1000" data-aos-delay="300" data-tilt data-tilt-max="8"
+                        class="cursor-hover glass-panel rounded-[2rem] p-6 flex flex-col h-full group border border-white/10 hover:border-emerald-400/50 hover:bg-emerald-400/5 animate-float">
+                        <div
+                            class="img-wrapper mb-8 h-48 rounded-2xl bg-[#010309] border border-white/5 overflow-hidden">
+                            <img src="https://lh3.googleusercontent.com/d/1BRGzW7yQ5ajb-XQUyXDn3IKMrV325fip"
+                                alt="Air Quality"
+                                class="w-full h-full object-cover opacity-80 mix-blend-luminosity group-hover:mix-blend-normal group-hover:scale-110 transition-all duration-700">
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex items-center gap-2 mb-4"> <span
+                                    class="text-[9px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">Python
+                                    | EDA</span> </div>
+                            <h4
+                                class="text-2xl font-bold mb-4 text-white group-hover:text-emerald-400 transition-colors">
+                                Air Quality Analysis</h4>
+                            <p class="text-slate-400 text-sm mb-6 leading-relaxed font-light"> Executed rigorous
+                                Exploratory Data Analysis on massive air quality datasets spanning India. Constructed
+                                precise categorization models, generating geographic heatmaps and correcting statistical
+                                aberrations to solidify integrity. </p>
+                        </div>
+                        <div class="mt-6 pt-6 border-t border-white/10"> <a
+                                href="https://github.com/Jayesh-bot/Python-T00LBOX" target="_blank"
+                                class="flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-emerald-400 hover:text-white transition-colors">
+                                View Repository <i
+                                    class="fa-solid fa-arrow-up-right-from-square ml-1 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform"></i>
+                            </a> </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Training Exclusive Section -->
+        <section id="training" class="py-32 px-6 border-y border-white/5 relative bg-surface/30">
+            <div class="max-w-4xl mx-auto relative z-10 cursor-hover animate-float">
+                <div class="mb-16 text-center" data-aos="zoom-in" data-aos-duration="1000">
+                    <h2 class="text-xs font-black text-accent uppercase tracking-[0.4em] mb-4">Milestone</h2>
+                    <h3 class="text-5xl md:text-6xl font-black text-white">Exclusive Training</h3>
+                </div>
+
+                <div class="relative py-10" data-aos="fade-up" data-aos-duration="1000">
+                    <div class="timeline-line hidden md:block"></div>
+
+                    <div class="flex justify-center w-full relative z-20">
+                        <div class="timeline-dot hidden md:block"></div>
+                        <div data-tilt data-tilt-max="5" data-tilt-glare data-tilt-max-glare="0.2"
+                            class="glass-panel-heavy p-10 md:p-12 rounded-[2.5rem] hover:border-accent/60 transition-colors border border-accent/30 w-full max-w-2xl bg-black/40 shadow-[0_30px_80px_rgba(56,189,248,0.15)] relative overflow-hidden group">
+
+                            <div
+                                class="absolute -top-10 -right-10 w-40 h-40 bg-accent/20 rounded-full blur-[60px] pointer-events-none group-hover:bg-accent/40 transition-colors">
+                            </div>
+
+                            <div class="flex flex-wrap justify-between items-start gap-4 mb-6 relative z-10">
+                                <div>
+                                    <span
+                                        class="px-4 py-1.5 bg-accent/15 text-accent rounded-full text-[10px] font-black uppercase tracking-widest inline-block border border-accent/20 mb-3 shadow-[0_0_20px_rgba(56,189,248,0.2)] animate-pulse-glow">Jun
+                                        2025 - Jul 2025</span>
+                                    <h4 class="text-3xl font-black text-white mb-1">Android Developer Pro</h4>
+                                    <p class="text-accent2 text-sm font-bold uppercase tracking-wider">Lovely
+                                        Professional University</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span
+                                        class="text-[10px] border border-white/20 bg-white/5 px-3 py-1.5 rounded-lg text-white font-bold tracking-widest uppercase shadow-sm">Kotlin</span>
+                                    <span
+                                        class="text-[10px] border border-white/20 bg-white/5 px-3 py-1.5 rounded-lg text-white font-bold tracking-widest uppercase shadow-sm">XML</span>
+                                </div>
+                            </div>
+
+                            <ul class="text-slate-300 text-md space-y-4 font-light mb-8 relative z-10 leading-relaxed">
+                                <li class="flex items-start gap-3"><span class="text-accent mt-1 text-lg">▹</span>
+                                    Completed an intensive hands-on certification path culminating in an official Play
+                                    Store Launch.</li>
+                                <li class="flex items-start gap-3"><span class="text-accent mt-1 text-lg">▹</span>
+                                    Mastered the Android environment by engineering a complete food delivery application
+                                    complete with Firebase backend authentication.</li>
+                            </ul>
+
+                            <a href="https://drive.google.com/file/d/1LdkQNYghfQD1X9cCg5ecc5BG9pFKU1C9/view?usp=sharing"
+                                target="_blank"
+                                class="relative z-10 inline-flex items-center text-xs text-white bg-accent/20 p-4 border border-accent/40 rounded-xl hover:bg-accent hover:text-deep hover:shadow-[0_0_30px_rgba(56,189,248,0.5)] font-black uppercase tracking-widest transition-all duration-300 group"><i
+                                    class="fa-solid fa-link mr-3 text-lg group-hover:scale-110 transition-transform"></i>
+                                View Credential Link</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="credentials" class="py-32 px-6 relative z-10">
+            <div class="max-w-7xl mx-auto cursor-hover animate-float">
+                <div class="text-center mb-16" data-aos="fade-up" data-aos-duration="1000">
+                    <h2 class="text-xs font-black text-accent uppercase tracking-[0.4em] mb-4">Verified</h2>
+                    <h3 class="text-5xl md:text-6xl font-black text-white">Certifications</h3>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <a href="https://drive.google.com/file/d/1VlOH8V-Dgy8dlS0GfOJ3MQVlmran3H0U/view?usp=sharing"
+                        target="_blank" data-aos="fade-up" data-tilt data-tilt-max="8"
+                        class="cursor-hover block glass-panel p-6 rounded-[2rem] flex flex-col justify-between group hover:border-accent/50 hover:bg-accent/5">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-certificate text-accent text-lg"></i>
+                            </div>
+                            <h4
+                                class="font-bold text-white text-[13px] leading-tight group-hover:text-accent transition-colors">
+                                Master Generative AI & Generative AI Tools</h4>
+                        </div><span
+                            class="block text-[10px] text-accent font-black uppercase tracking-widest">Udemy</span>
+                    </a>
+                    <a href="https://drive.google.com/file/d/1QdJ-pNbvvSg5NSdx3oV7OwqpTUOneH-5/view?usp=sharing"
+                        target="_blank" data-aos="fade-up" data-aos-delay="100" data-tilt data-tilt-max="8"
+                        class="cursor-hover block glass-panel p-6 rounded-[2rem] flex flex-col justify-between group hover:border-purple-400/50 hover:bg-purple-400/5">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-purple-400/10 border border-purple-400/20 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-certificate text-purple-400 text-lg"></i>
+                            </div>
+                            <h4
+                                class="font-bold text-white text-[13px] leading-tight group-hover:text-purple-400 transition-colors">
+                                Computational Theory: Finite Automata Theory</h4>
+                        </div><span
+                            class="block text-[10px] text-purple-400 font-black uppercase tracking-widest">Infosys</span>
+                    </a>
+                    <a href="https://drive.google.com/file/d/177VKq4vDPV_yKSGsnbMH7VENM9x8aVIk/view?usp=sharing"
+                        target="_blank" data-aos="fade-up" data-aos-delay="200" data-tilt data-tilt-max="8"
+                        class="cursor-hover block glass-panel p-6 rounded-[2rem] flex flex-col justify-between group hover:border-emerald-400/50 hover:bg-emerald-400/5">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-shield text-emerald-400 text-lg"></i>
+                            </div>
+                            <h4
+                                class="font-bold text-white text-[13px] leading-tight group-hover:text-emerald-400 transition-colors">
+                                Privacy & Security in Online Social Media</h4>
+                        </div><span
+                            class="block text-[10px] text-emerald-400 font-black uppercase tracking-widest">NPTEL</span>
+                    </a>
+                    <a href="https://drive.google.com/file/d/1W94ZHYBbPrbIirI1tOdCka16StVLQG_z/view?usp=sharing"
+                        target="_blank" data-aos="fade-up" data-aos-delay="0" data-tilt data-tilt-max="8"
+                        class="cursor-hover block glass-panel p-6 rounded-[2rem] flex flex-col justify-between group hover:border-indigo-400/50 hover:bg-indigo-400/5">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-indigo-400/10 border border-indigo-400/20 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-server text-indigo-400 text-lg"></i>
+                            </div>
+                            <h4
+                                class="font-bold text-white text-[13px] leading-tight group-hover:text-indigo-400 transition-colors">
+                                TCP/IP and Advanced Topics</h4>
+                        </div><span
+                            class="block text-[10px] text-indigo-400 font-black uppercase tracking-widest">Coursera</span>
+                    </a>
+                    <a href="https://drive.google.com/file/d/1NDI0-SO_OQlhZnXsb3yPzbdHsjtrIs9g/view?usp=sharing"
+                        target="_blank" data-aos="fade-up" data-aos-delay="100" data-tilt data-tilt-max="8"
+                        class="cursor-hover block glass-panel p-6 rounded-[2rem] flex flex-col justify-between group hover:border-accent/50 hover:bg-accent/5">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-network-wired text-accent text-lg"></i>
+                            </div>
+                            <h4
+                                class="font-bold text-white text-[13px] leading-tight group-hover:text-accent transition-colors">
+                                Fundamentals of Network Communication</h4>
+                        </div><span
+                            class="block text-[10px] text-accent font-black uppercase tracking-widest">Coursera</span>
+                    </a>
+                    <a href="https://drive.google.com/file/d/1vfPEFrKKmubRjx_bbHyNknxh2DAdjVrT/view?usp=sharing"
+                        target="_blank" data-aos="fade-up" data-aos-delay="200" data-tilt data-tilt-max="8"
+                        class="cursor-hover block glass-panel p-6 rounded-[2rem] flex flex-col justify-between group hover:border-orange-400/50 hover:bg-orange-400/5">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-orange-400/10 border border-orange-400/20 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-microchip text-orange-400 text-lg"></i>
+                            </div>
+                            <h4
+                                class="font-bold text-white text-[13px] leading-tight group-hover:text-orange-400 transition-colors">
+                                Introduction to Hardware and Operating Systems</h4>
+                        </div><span
+                            class="block text-[10px] text-orange-400 font-black uppercase tracking-widest">Coursera</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+        <section id="achieve" class="py-32 px-6 relative z-10 border-t border-white/5 bg-[#010309]/50 backdrop-blur-xl">
+            <div class="max-w-6xl mx-auto cursor-hover">
+                <div class="text-center mb-16" data-aos="fade-up" data-aos-duration="1000">
+                    <h2 class="text-xs font-black text-accent uppercase tracking-[0.4em] mb-4">Milestones</h2>
+                    <h3 class="text-5xl md:text-6xl font-black text-white">Achievements</h3>
+                </div>
+                <div class="grid sm:grid-cols-2 gap-8">
+                    <a href="https://www.hackerrank.com/profile/work1387j" target="_blank" data-aos="fade-right"
+                        data-tilt data-tilt-max="5"
+                        class="cursor-hover block glass-panel-heavy p-8 rounded-[2rem] hover:border-accent/40 hover:bg-accent/5 transition-all group overflow-hidden relative animate-float">
+                        <i
+                            class="fa-solid fa-trophy text-9xl absolute -bottom-4 -right-4 text-accent/5 rotate-12 group-hover:scale-110 transition-transform duration-500"></i>
+                        <div class="relative z-10">
+                            <div
+                                class="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center border border-accent/20 mb-6 group-hover:bg-accent/30 transition-colors">
+                                <i class="fa-solid fa-star text-accent text-2xl"></i>
+                            </div>
+                            <h4 class="text-2xl font-bold text-white group-hover:text-accent transition-colors mb-4">
+                                HackerRank Rating</h4>
+                            <p class="text-slate-400 leading-relaxed font-light mb-4 text-sm mt-3">Achieved prestigious
+                                3-Star ratings in Python and CPP. Demonstrated high consistency across all coding and
+                                algorithm challenges, reflecting rigorous problem-solving logic.</p>
+                            <span
+                                class="inline-flex items-center text-xs text-white font-bold uppercase tracking-widest border-b border-white/20 pb-1 group-hover:border-accent group-hover:text-accent mt-4">Verify
+                                Profile <i class="fa-solid fa-arrow-right ml-2 text-[10px]"></i></span>
+                        </div>
+                    </a>
+                    <a href="https://leetcode.com/u/Ja_y_3_sh/" target="_blank" data-aos="fade-left" data-tilt
+                        data-tilt-max="5"
+                        class="cursor-hover block glass-panel-heavy p-8 rounded-[2rem] hover:border-orange-500/40 hover:bg-orange-500/5 transition-all group overflow-hidden relative animate-float-delayed">
+                        <i
+                            class="fa-solid fa-fire text-9xl absolute -bottom-4 -right-4 text-orange-500/5 rotate-12 group-hover:scale-110 transition-transform duration-500"></i>
+                        <div class="relative z-10">
+                            <div
+                                class="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20 mb-6 group-hover:bg-orange-500/30 transition-colors">
+                                <i class="fa-solid fa-code text-orange-400 text-2xl"></i>
+                            </div>
+                            <h4
+                                class="text-2xl font-bold text-white group-hover:text-orange-400 transition-colors mb-4">
+                                LeetCode Mastery</h4>
+                            <p class="text-slate-400 leading-relaxed font-light mb-4 text-sm mt-3">Continuously
+                                strengthening data structures, problem-solving memory bounds, and complex backend
+                                algorithmic development in CPP through continuous, daily practice.</p>
+                            <span
+                                class="inline-flex items-center text-xs text-white font-bold uppercase tracking-widest border-b border-white/20 pb-1 group-hover:border-orange-400 group-hover:text-orange-400 mt-4">View
+                                Profile <i class="fa-solid fa-arrow-right ml-2 text-[10px]"></i></span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+        <section id="contact"
+            class="py-32 px-6 relative border-t border-white/5 overflow-hidden bg-gradient-to-t from-black via-[#010309] to-transparent">
+
+            <div class="max-w-4xl mx-auto relative z-10" data-aos="fade-up" data-aos-duration="1200">
+                <div class="text-center mb-16">
+                    <h2 class="text-xs font-black text-accent uppercase tracking-[0.4em] mb-4">Network</h2>
+                    <h3 class="text-5xl md:text-8xl font-black mb-6 tracking-tighter text-white uppercase"> Establish
+                        <br /><span class="gradient-text text-glow">Contact.</span>
+                    </h3>
+                    <p class="text-slate-400 text-lg md:text-xl font-light"> Currently exploring elite logic and
+                        architecture roles. Click below to copy or connect. </p>
+                </div>
+
+                <div data-tilt data-tilt-max="5" data-tilt-glare data-tilt-max-glare="0.2"
+                    class="glass-panel-heavy p-8 md:p-12 rounded-[3rem] mx-auto border border-white/10 shadow-[0_0_80px_rgba(56,189,248,0.15)] relative group/card cursor-hover overflow-hidden">
+
+                    <!-- Interactive Background flares inside card -->
+                    <div
+                        class="absolute -inset-10 bg-accent/10 rounded-full blur-[80px] pointer-events-none group-hover/card:bg-accent/30 transition duration-700 sm:translate-x-1/2 sm:translate-y-1/2">
+                    </div>
+
+                    <div class="relative z-10 flex flex-col gap-6 w-full">
+
+                        <!-- Interactive Copy Email Box -->
+                        <button onclick="copyEmail(this)"
+                            class="w-full flex items-center justify-between p-6 md:p-8 bg-gradient-to-br from-accent to-accent2 rounded-[2rem] hover:scale-[1.03] transition-all duration-[400ms] shadow-[0_0_40px_rgba(56,189,248,0.3)] hover:shadow-[0_0_60px_rgba(56,189,248,0.6)] cursor-hover group/email border border-white/20 relative overflow-hidden">
+                            <div
+                                class="absolute inset-0 bg-white/0 group-hover/email:bg-white/20 transition-colors duration-300">
+                            </div>
+
+                            <div class="flex flex-col items-start gap-1 relative z-10 text-left">
+                                <span
+                                    class="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 group-hover/email:text-white transition-colors">Primary
+                                    Comm Link</span>
+                                <span
+                                    class="text-xl sm:text-3xl font-black tracking-tight text-[#010309]">jayeshmore1353@gmail.com</span>
+                            </div>
+
+                            <div
+                                class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center relative z-10 group-hover/email:rotate-12 group-hover:scale-110 transition-transform">
+                                <i
+                                    class="fa-solid fa-copy text-[#010309] text-2xl transition-all duration-300 icon-copy"></i>
+                                <i
+                                    class="fa-solid fa-check text-green-900 text-2xl transition-all duration-300 icon-check hidden"></i>
+                            </div>
+                        </button>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <!-- Animated Mobile -->
+                            <a href="tel:+917972888296"
+                                class="cursor-hover p-6 glass-panel font-bold text-white rounded-3xl hover:border-emerald-400 hover:text-emerald-400 hover:bg-emerald-400/10 transition-all flex flex-col items-center justify-center gap-3 group/phone hover:-translate-y-2">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-emerald-400/10 flex items-center justify-center border border-emerald-400/20 group-hover/phone:scale-110 transition-transform">
+                                    <i class="fa-solid fa-phone text-xl text-emerald-400"></i>
+                                </div>
+                                <span class="text-sm font-black tracking-wider">+91 7972888296</span>
+                            </a>
+                            <!-- Animated LinkedIn -->
+                            <a href="https://www.linkedin.com/in/jayeshm0re/" target="_blank"
+                                class="cursor-hover p-6 glass-panel rounded-3xl hover:border-[#0077b5] hover:text-[#0077b5] hover:bg-[#0077b5]/10 transition-all flex flex-col items-center justify-center gap-3 group/li hover:-translate-y-2">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-[#0077b5]/10 flex items-center justify-center border border-[#0077b5]/20 group-hover/li:scale-110 transition-transform">
+                                    <i class="fa-brands fa-linkedin-in text-xl text-[#0077b5]"></i>
+                                </div>
+                                <span class="text-xs font-black uppercase tracking-widest">Connect</span>
+                            </a>
+                            <!-- Animated Github -->
+                            <a href="https://github.com/Jayesh-bot" target="_blank"
+                                class="cursor-hover p-6 glass-panel rounded-3xl hover:border-white hover:text-white hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-3 group/gh hover:-translate-y-2">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20 group-hover/gh:scale-110 transition-transform">
+                                    <i class="fa-brands fa-github text-xl text-white"></i>
+                                </div>
+                                <span class="text-xs font-black uppercase tracking-widest">Follow</span>
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+        <footer class="pb-10 pt-20 px-6 text-center bg-transparent relative z-10">
+            <p class="text-[10px] font-black text-slate-600 uppercase">Jayesh More • Tech Architecture • 2026</p>
+        </footer>
+    </main>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <script>
+        AOS.init({ once: true, offset: 50 });
+
+        // Copy Email Interactivity Logic
+        function copyEmail(btn) {
+            navigator.clipboard.writeText('jayeshmore1353@gmail.com');
+            const copyIcon = btn.querySelector('.icon-copy');
+            const checkIcon = btn.querySelector('.icon-check');
+            const label = btn.querySelector('span:first-child');
+
+            copyIcon.classList.add('hidden');
+            checkIcon.classList.remove('hidden');
+            label.innerText = 'COPIED TO CLIPBOARD!';
+
+            setTimeout(() => {
+                copyIcon.classList.remove('hidden');
+                checkIcon.classList.add('hidden');
+                label.innerText = 'Primary Comm Link';
+            }, 2500);
+        }
+
+        const cursor = document.getElementById('cursor'); const follower = document.getElementById('cursor-follower');
+        let mouseX = window.innerWidth / 2; let mouseY = window.innerHeight / 2;
+        let followerX = mouseX, followerY = mouseY; let isHovering = false;
+        document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; cursor.style.left = mouseX + 'px'; cursor.style.top = mouseY + 'px'; });
+        function animateFollower() { followerX += (mouseX - followerX) * 0.15; followerY += (mouseY - followerY) * 0.15; follower.style.left = followerX + 'px'; follower.style.top = followerY + 'px'; requestAnimationFrame(animateFollower); }
+        animateFollower();
+        document.querySelectorAll('a, button, .cursor-hover, input, textarea, [data-tilt]').forEach(el => { el.addEventListener('mouseenter', () => { document.body.classList.add('hovering'); isHovering = true; }); el.addEventListener('mouseleave', () => { document.body.classList.remove('hovering'); isHovering = false; }); });
+
+        const lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), direction: 'vertical', smooth: true }); function raf(time) { lenis.raf(time); requestAnimationFrame(raf); } requestAnimationFrame(raf);
+
+        // Subtly animating Cosmos
+        const canvas = document.getElementById('interactive-canvas'); const ctx = canvas.getContext('2d');
+        let w, h; let stars = []; const maxStars = window.innerWidth < 768 ? 200 : 700;
+        function initCosmos() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; stars = []; for (let i = 0; i < maxStars; i++) { stars.push({ x: Math.random() * w, y: Math.random() * h, size: Math.random() * 2 + 0.1, speed: Math.random() * 0.4 + 0.05, depth: Math.random() }); } }
+        function animateCosmos() {
+            ctx.fillStyle = 'rgba(1, 3, 9, 1)'; ctx.fillRect(0, 0, w, h);
+            let time = Date.now() * 0.0002; let g1 = ctx.createRadialGradient(w * 0.3, h * 0.3, 0, w * 0.3, h * 0.3, w * 0.5); g1.addColorStop(0, 'rgba(56, 189, 248, 0.04)'); g1.addColorStop(1, 'transparent'); ctx.fillStyle = g1; ctx.fillRect(0, 0, w, h);
+            for (let i = 0; i < maxStars; i++) {
+                let s = stars[i]; s.y -= s.speed * (isHovering ? 2.5 : 1); s.x -= (s.speed * 0.5) * (isHovering ? 2.5 : 1);
+                if (s.y < 0) s.y = h; if (s.x < 0) s.x = w;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.size * (isHovering ? 1.5 : 1), 0, Math.PI * 2);
+                let alpha = s.depth * 0.8 + 0.2;
+                if (s.depth > 0.8) { ctx.fillStyle = `rgba(224, 242, 254, ${alpha})`; ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(56, 189, 248, 0.8)'; }
+                else if (s.depth > 0.4) { ctx.fillStyle = `rgba(186, 230, 253, ${alpha})`; ctx.shadowBlur = 4; ctx.shadowColor = 'rgba(56, 189, 248, 0.4)'; }
+                else { ctx.fillStyle = `rgba(148, 163, 184, ${alpha})`; ctx.shadowBlur = 0; }
+                ctx.fill();
+            } requestAnimationFrame(animateCosmos);
+        }
+        window.addEventListener('resize', initCosmos); initCosmos(); animateCosmos();
+        const navbar = document.getElementById('navbar'); window.addEventListener('scroll', () => { if (window.scrollY > 50) navbar.classList.add('shadow-xl', 'bg-deep/40'); else navbar.classList.remove('shadow-xl', 'bg-deep/40'); });
+    </script>
+</body>
+
+</html>
